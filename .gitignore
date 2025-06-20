@@ -2,7 +2,20 @@ node_modules
 dist
 .env
 .DS_Store
+
+# Ignore environment files
+.env
+/server/.env
+/server/config/your-firebase.json
+# .gitignore
+.env
+.env.* 
+*.env
+/server/config/firebaseAdmin.json
+
+
 # Logs
+
 logs
 *.log
 npm-debug.log*
