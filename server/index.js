@@ -32,3 +32,9 @@ app.use("/api/contest", contestRoutes);
 
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
+
+const teamRoutes = require("./routes/teamRoutes");
+app.use("/api/teams", teamRoutes);
+
+const userTeamRoutes = require('./routes/userTeamRoutes');
+app.use('/api/user-team', userTeamRoutes);

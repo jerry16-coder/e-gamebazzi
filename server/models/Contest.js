@@ -1,70 +1,47 @@
 const mongoose = require("mongoose");
 
+const participantSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  team: {
+    type: [
+      {
+        playerId: { type: mongoose.Schema.Types.ObjectId, ref: "Player" },
+        playerName: String,
+        playerImage: String,
+      },
+    ],
+    default: [],
+  },
+  joinedAt: { type: Date, default: Date.now },
+});
+
 const contestSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: true,
-    },
+    title: String,
     gameType: {
       type: String,
-      required: true,
-      enum: ["BGMI", "COD", "Free Fire", "Valorant", "Other"],
-    },
-    matchTime: {
-      type: Date,
+      enum: ["BGMI", "COD", "Valorant"],
       required: true,
     },
-    entryFee: {
-      type: Number,
-      required: true,
+    matchTime: Date,
+    entryFee: Number,
+    maxPlayers: Number,
+    minPlayersToStart: Number,
+    prizePool: Number,
+    status: { type: String, default: "open" },
+    isDisbanded: { type: Boolean, default: false },
+    isPrizeApproved: { type: Boolean, default: false },
+    createdBy: String,
+    participants: [participantSchema],
+    playersJoined: { type: Number, default: 0 },
+    winnerBreakdown: {
+      type: [Object],
+      default: [],
     },
-    minPlayersToStart: {
-      type: Number,
-      required: true,
-    },
-    maxPlayers: {
-      type: Number,
-      required: true,
-    },
-    participants: [
-      {
-        uid: { type: String, required: true },
-        joinedAt: { type: Date, default: Date.now },
-      },
-    ],
-    playersJoined: {
-  type: Number,
-  default: 0,
-},
-    prizePool: {
-      type: Number,
-      default: 0,
-    },
-    isDisbanded: {
-      type: Boolean,
-      default: false,
-    },
-    isPrizeApproved: {
-      type: Boolean,
-      default: false,
-    },
-    status: {
-      type: String,
-      enum: ["open", "locked", "disbanded", "completed"],
-      default: "open",
-    },
-    winnerBreakdown: [
-      {
-        uid: String,
-        rank: Number,
-        prize: Number,
-      },
-    ],
-    createdBy: {
-      type: String,
-      required: true, // admin UID
-    },
+
+    // 🆕 New Configurations
+    maxSelectablePlayers: { type: Number, default: 4 }, // e.g. 4 for BGMI, 5 for COD
+    teamCount: { type: Number, default: 16 }, // For display / logic
   },
   { timestamps: true }
 );
