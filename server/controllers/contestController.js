@@ -1,24 +1,30 @@
 const Contest = require("../models/Contest");
+const Join = require("../models/Join");
 const User = require("../models/User");
 
+// 👨‍💻 Admin-only: Create contest
 const createContest = async (req, res) => {
   try {
     const {
       title,
-      game,
+      gameType,
+      matchTime,
       entryFee,
       prizePool,
       maxPlayers,
-      playerPool, // 🆕 array of players for the contest
+      minPlayersToStart,
     } = req.body;
 
     const contest = await Contest.create({
       title,
-      game,
+      gameType,
+      matchTime,
       entryFee,
       prizePool,
       maxPlayers,
-      playerPool,
+      minPlayersToStart,
+      playersJoined: 0,
+      createdBy: req.user.uid,
     });
 
     res.status(201).json(contest);
@@ -28,43 +34,64 @@ const createContest = async (req, res) => {
   }
 };
 
+// 🧑‍💻 User: Join contest
 const joinContest = async (req, res) => {
-  const { contestId, team } = req.body;
-  const userId = req.user.uid;
-
   try {
-    const user = await User.findOne({ uid: userId });
+    const userId = req.user.uid;
+    const { contestId } = req.body;
+
+    // 1. Fetch the contest
     const contest = await Contest.findById(contestId);
+    if (!contest) {
+      return res.status(404).json({ message: "Contest not found" });
+    }
 
-    if (!user || !contest) return res.status(404).json({ message: "User or contest not found" });
+    // 2. Check if match entry is still open (before 5 mins)
+    const now = new Date();
+    const cutoff = new Date(new Date(contest.matchTime).getTime() - 5 * 60 * 1000);
+    if (now > cutoff) {
+      return res.status(400).json({ message: "Entry closed (5 min before match)" });
+    }
 
-    if (user.balance < contest.entryFee)
+    // 3. Check if user already joined
+    const alreadyJoined = await Join.findOne({ userId, contestId });
+    if (alreadyJoined) {
+      return res.status(400).json({ message: "Already joined" });
+    }
+
+    // 4. Find user
+    const user = await User.findOne({ uid: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ VERY IMPORTANT: Check correct field name
+    if (user.balance < contest.entryFee) {
       return res.status(400).json({ message: "Insufficient balance" });
+    }
 
-    if (contest.status !== "open")
-      return res.status(400).json({ message: "Contest not open for joining" });
-
-    if (team.length !== 4)
-      return res.status(400).json({ message: "Exactly 4 players must be selected" });
-
-    // Deduct entry fee
+    // 5. Deduct balance and save
     user.balance -= contest.entryFee;
     await user.save();
 
-    // Add user and team to contest
-    contest.joinedUsers.push({
-      userId: user._id,
-      team, // array of 4 players
+    // 6. Save join record
+    await Join.create({ userId, contestId });
+
+    // 7. Update contest participants and count
+    contest.playersJoined += 1;
+    contest.participants.push({
+      uid: userId,
+      joinedAt: new Date(),
     });
-    contest.currentPlayers += 1;
     await contest.save();
 
-    res.status(200).json({ message: "Joined contest successfully", contest });
+    return res.status(200).json({ message: "Successfully joined contest" });
   } catch (error) {
-    console.error("Join Contest Error:", error);
-    res.status(500).json({ message: "Could not join contest" });
+    console.error("Join contest error:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 module.exports = {
   createContest,

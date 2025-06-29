@@ -1,34 +1,72 @@
 const mongoose = require("mongoose");
 
-const contestSchema = new mongoose.Schema({
-  title: String,
-  game: String,
-  entryFee: Number,
-  prizePool: Number,
-  maxPlayers: Number,
-  currentPlayers: {
-    type: Number,
-    default: 0,
-  },
-  // 🆕 This is the new field that allows admin to set player list
-  playerPool: [
-    {
-      name: String,
-      team: String,
-      role: String,
-      credit: Number,
-    }
-  ],
-  joinedUsers: [
-    {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      team: Array,
+const contestSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
     },
-  ],
-  status: {
-    type: String,
-    default: "open",
+    gameType: {
+      type: String,
+      required: true,
+      enum: ["BGMI", "COD", "Free Fire", "Valorant", "Other"],
+    },
+    matchTime: {
+      type: Date,
+      required: true,
+    },
+    entryFee: {
+      type: Number,
+      required: true,
+    },
+    minPlayersToStart: {
+      type: Number,
+      required: true,
+    },
+    maxPlayers: {
+      type: Number,
+      required: true,
+    },
+    participants: [
+      {
+        uid: { type: String, required: true },
+        joinedAt: { type: Date, default: Date.now },
+      },
+    ],
+    playersJoined: {
+  type: Number,
+  default: 0,
+},
+    prizePool: {
+      type: Number,
+      default: 0,
+    },
+    isDisbanded: {
+      type: Boolean,
+      default: false,
+    },
+    isPrizeApproved: {
+      type: Boolean,
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: ["open", "locked", "disbanded", "completed"],
+      default: "open",
+    },
+    winnerBreakdown: [
+      {
+        uid: String,
+        rank: Number,
+        prize: Number,
+      },
+    ],
+    createdBy: {
+      type: String,
+      required: true, // admin UID
+    },
   },
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Contest", contestSchema);
